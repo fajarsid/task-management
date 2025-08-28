@@ -6,12 +6,12 @@ import { Link } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem } from "@/types";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "@inertiajs/react";
-import {route} from "ziggy-js";
+import { route } from "ziggy-js";
 
 
 
@@ -43,6 +43,8 @@ export default function ListsIndex({ lists, flash }: Props) {
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
     const [toastType, setToastType] = useState<"success" | "error">("success");
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<List | null>(null);
 
     useEffect(() => {
         if (flash?.success) {
@@ -111,9 +113,11 @@ export default function ListsIndex({ lists, flash }: Props) {
         setIsOpen(true);
     };
 
-    const handleDelete = (listId: number) => {
-        if (confirm("Are you sure you want to delete this list?")) {
-            destroy(route("lists.destroy", listId));
+    const confirmDelete = () => {
+        if (deleteTarget) {
+            destroy(route("lists.destroy", deleteTarget.id), {
+                onSuccess: () => setDeleteDialogOpen(false),
+            });
         }
     };
 
@@ -132,10 +136,27 @@ export default function ListsIndex({ lists, flash }: Props) {
                         <span>{toastMessage}</span>
                     </div>
                 )}
-                
+
+                <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Confirm Delete</DialogTitle>
+                        </DialogHeader>
+                        <p>Are you sure you want to delete <strong>{deleteTarget?.title}</strong>? This action cannot be undone.</p>
+                        <DialogFooter className="mt-4 flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={confirmDelete}>
+                                Delete
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-2xl font-bold">Lists</h1>
-                    
+
                     <Dialog open={isOpen} onOpenChange={setIsOpen}>
                         <DialogTrigger asChild>
                             <Button>
@@ -188,17 +209,20 @@ export default function ListsIndex({ lists, flash }: Props) {
                                     </Link>
                                 </CardTitle>
                                 <div className="flex gap-2">
-                                    <Button 
-                                        variant={"ghost"} 
-                                        size={"icon"} 
+                                    <Button
+                                        variant={"ghost"}
+                                        size={"icon"}
                                         onClick={() => handleEdit(list)}
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Button>
-                                    <Button 
-                                        variant={"ghost"} 
-                                        size={"icon"} 
-                                        onClick={() => handleDelete(list.id)} 
+                                    <Button
+                                        variant={"ghost"}
+                                        size={"icon"}
+                                        onClick={() => {
+                                            setDeleteTarget(list);
+                                            setDeleteDialogOpen(true);
+                                        }}
                                         className="text-destructive hover:text-destructive/90"
                                     >
                                         <Trash2 className="h-4 w-4" />
